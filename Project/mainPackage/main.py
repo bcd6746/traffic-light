@@ -2,40 +2,53 @@ import numpy as np
 import os
 import open3d as o3d
 from matplotlib import pyplot as plt
+from sklearn.cluster import DBSCAN
+import ImageInfo.ImageInfo as im
 
 
-#How do we find the
-
-def main(imgFiles, pointCloudfiles): 
+def main(imgFiles, pointCloudfiles):
+    imageInfo = []
     for filename in os.listdir(pointCloudfiles):
-        # Check if the file is an image
-        if filename.endswith(('.jpg', '.jpeg', '.png', '.gif')):
-            print(imgFiles+"\\"+filename)
-            vehicleInfo = createVehicleInfo((imgFiles+"\\"+filename))
+        print(pointCloudfiles + "\\" + filename)
+        vehicleInfo = createVehicleInfo((pointCloudfiles + "\\" + filename), imageInfo)
 
-def FillVehics(img, ImageInfo):
+
+def FillVehics(img, imageInfo):
     clusters = ClusterLidar(img)
     for clusts in clusters:
-        if len(clusts)>10:
-            print(clusts)
+        temp = im.ImageInfo(clusts)
+        #temp.SetPosition(clusts.)
+        imageInfo.append(temp)
 
 
-#create clusters to count and track the cars
-#measure velocity from the movement of one frame to the next
-#compare based on the closest cluster to the position of the cluster in the previous frame
+# create clusters to count and track the cars
+# measure velocity from the movement of one frame to the next
+# compare based on the closest cluster to the position of the cluster in the previous frame
 def ClusterLidar(file):
     pcd = o3d.io.read_point_cloud(file)
     points = np.asarray(pcd.points)
-    clustering = o3d.DBSCAN(eps=.5, min_samples=10).fit(points)
-    cluster_labels = clustering.labels_
-    visualize_clusters(points,cluster_labels)
-    return cluster_labels
+    print(len(points))
 
-def createVehicleInfo(file):
-    imgeInfo = ImageInfo()
-    fillVehics = FillVehics(file, ImageInfo)
+    clusters = np.array(0)
 
-    #call functions to set each element of the vehic class
+    if (len(points) > 3):
+        clustering = DBSCAN(eps=.5, min_samples=10).fit(points)
+        cluster_labels = clustering.labels_
+        visualize_clusters(points, cluster_labels)
+    unique_labels = set(cluster_labels)
+    colors = plt.cm.Spectral(np.linspace(0, 1, len(unique_labels)))
+
+    for cluster, color in zip(unique_labels, colors):
+        clusters = points[cluster_labels == cluster]
+
+    return clusters
+
+
+def createVehicleInfo(file,imageInfo):
+    fillVehics = FillVehics(file, imageInfo)
+
+    # call functions to set each element of the vehic class
+
 
 def visualize_clusters(points, cluster_labels):
     # Visualize clusters
@@ -48,37 +61,12 @@ def visualize_clusters(points, cluster_labels):
     for cluster, color in zip(unique_labels, colors):
         cluster_points = points[cluster_labels == cluster]
         ax.scatter(cluster_points[:, 0], cluster_points[:, 1], cluster_points[:, 2], c=[color], marker='o', s=20)
-
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-    plt.show()
+        #plt.show()
 
 
-if __name__=="__main__": 
-    #LOAD Folders 
-    imgFiles = "F:\\computer vision final project\\traffic-light\\dataset\\Images" 
+if __name__ == "__main__":
+    # LOAD Folders
+    imgFiles = "F:\\computer vision final project\\traffic-light\\dataset\\Images"
     print(imgFiles)
     pointCloudFiles = "F:\\computer vision final project\\traffic-light\\dataset\PointClouds"
     main(imgFiles, pointCloudFiles)
-
-class ImageInfo:
-    def __init__(self):
-        return
-    def GetVelocity(self):
-        return self.velocity
-    def GetBoundingBox(self):
-        return self.boundingbox
-    def GetPosition(self):
-        return self.position
-    def GetBackground(self):
-        return self.background
-    def SetPosition(self,position):
-        self.position = position
-    def SetBoundingBox(self, boundingbox):
-        self.boundingbox = boundingbox
-    def SetVelocity(self, velocity):
-        self.velocity = velocity
-    def SetBackground(self, background):
-        self.background = background
-        
